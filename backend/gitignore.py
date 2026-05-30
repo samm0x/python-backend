@@ -1,0 +1,1 @@
+echo "node_modules/.venv/__pycache__/*.db*.pyc.env" > .gitignore
