@@ -129,21 +129,6 @@ def sss (user:User = Depends(get_current_user) ,db:Session = Depends(get_db)):
         "yuor": user.role
     }
 
-@router.post("/logout-all")
-def logout_all(user: User = Depends(get_current_user), db :Session = Depends(get_db)):
-    sessions = db.query(RefreshToken).filter(RefreshToken.user_id == user.id, RefreshToken.is_revoked == False)
-    for session in sessions:
-        session.is_revoked = True
-
-    db.commit()
-
-    log_action(
-        db, user.id ,
-        "logout_all_devices"
-
-    )
-    return { "message": "logout out from all devices"}
-
 @router.post("/request-reset")
 def request_reset(
     current_user: User = Depends(get_current_user)
