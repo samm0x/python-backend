@@ -216,30 +216,11 @@ def test_redis():
 
 
 @router.get("/userses")
-def get_users(db: Session):
+def get_users(db: Session = Depends(get_db)):
+    cached_users = redis_client.get("userses")
+    if cached_users:
+        return json.loads(cached_users)
 
-    cahed_users = redis_client.get("userses")
-
-    if cahed_users:
-        return json.loads(cahed_users)
-
-    userses = db.query(User).all()
-
-    users_data = []
-
-    for user in userses :
-        users_data.append({
-            "ip" : user.ip ,
-            "username": user.username
-        })
-
-    redis_client.setex(
-        f"otp:{user.username}",
-        120,
-        otp
-    )
-
-    saved_otp = redis_client.get(f"otp:{user.username}")
-
+    users = db.query(User).all()
+    users_data = [{"username": u.username, "ip": u.ip} for u in users]
     return users_data
-
