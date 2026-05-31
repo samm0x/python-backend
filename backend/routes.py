@@ -110,9 +110,9 @@ def delete_session(session_id: int, user: User = Depends(get_current_user), db:S
 
 @router.post("/sessions/logout-all")
 def logout_all(user: User = Depends(get_current_user),
-               current_session_id: int = Depends(get_current_session_id) ,
+               current_session_id: int = Depends(get_current_session_id),
                db: Session = Depends(get_db)):
-    session = db.query(RefreshToken).filter(RefreshToken.expires_at < datetime.utcnow(), RefreshToken.is_revoked == False)(db , user).all()
+    session = db.query(RefreshToken).filter(RefreshToken.expires_at < datetime.utcnow(), RefreshToken.is_revoked == False).all()
     for s in session:
         if s.id != current_session_id:s.is_revoked = True
 
@@ -154,8 +154,7 @@ def get_logs(
         db: Session = Depends(get_db),
         admin: User = Depends(get_current_admin)
 ):
-    return db.query(AuditLog).all
-
+    return db.query(AuditLog).all()
 @router.get("/users")
 def get_users(
         search : str = None,
