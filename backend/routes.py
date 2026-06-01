@@ -22,7 +22,7 @@ from backend.services.auth_services import (login , register ,
 from fastapi import BackgroundTasks
 import random
 from celery import Celery
-from celery_app import celery
+from backend.celery_app import celery
 limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
@@ -40,7 +40,7 @@ def send_email():
 @router.post("/login" )
 @limiter.limit("5 / minute")
 def login_user ( request: Request, data : LoginRequest, db: Session = Depends(get_db)):
-    return login(db, data.username,data.password)
+    return login(request ,db, data.username,data.password)
 
 @router.post("/register")
 def register_user(data: RegisterRequest, background_tasks: BackgroundTasks ,  db: Session = Depends(get_db)):
@@ -60,7 +60,7 @@ def logouts(
         user : User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
-    return logout(db, token , user)
+    return logout( db, token , user)
 
 
 @router.patch("/admin/users/{user_id}/make-admin")

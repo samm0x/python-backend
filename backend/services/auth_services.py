@@ -32,9 +32,9 @@ def login( request: Request , db : Session , username: str , password: str):
     user_agent = request.headers.get("User-Agent")
     ip = request.client.host
     if not user:
-        raise success_response(message="User not found" , data= login)
+        raise HTTPException(status_code=404, detail="User not found")
     if not verify_password(password, user.password):
-        raise success_response(message = "wrong password" , data= login)
+        raise HTTPException(status_code=401, detail = "Wrong password")
 
     refresh_token = create_refresh_token()
 
