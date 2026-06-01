@@ -5,9 +5,17 @@ client = TestClient(app)
 
 def test_register():
     response = client.post("/register",json={
-        "username": "sam",
+        "username": "testuser123",
         "password": "1234"
+
     })
     assert response.status_code == 200
 
 def test_login():
+    response = client.post("/login",json={
+        "username" : "testuser123",
+        "password" : "1234"
+    })
+    assert response.status_code == 200
+
+

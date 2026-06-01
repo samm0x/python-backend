@@ -47,7 +47,7 @@ def register_user(data: RegisterRequest, background_tasks: BackgroundTasks ,  db
     background_tasks.add_task(
         send_email
     )
-    return register(db, data.username)
+    return register(db, background_tasks , data.username, data.password)
 
 @router.post("/refresh")
 def refresh_token_endpoints(refresh_token: str, db: Session = Depends(get_db)):

@@ -48,6 +48,7 @@ class AuditLog(Base):
     __tablename__ = "audit_log"
 
     id = Column(Integer, primary_key=True, index=True)
+    ip = Column(String, nullable=True)
     user_id = Column(Integer)
     action = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -20,7 +20,7 @@ from slowapi.util import get_remote_address
 from backend.repositories.user_repository import get_user_by_username , create_user , get_user_sessions_query , filter_by_device
 from backend.utils.responses import success_response
 from fastapi import  BackgroundTasks
-
+from backend.celery_app import send_email
 limiter = Limiter(key_func=get_remote_address)
 
 
@@ -75,7 +75,7 @@ def register(db: Session ,background_tasks: BackgroundTasks , username: str , pa
     create_user(db, username, hashed_password)
 
     background_tasks.add_task(
-        username
+        send_email
     )
 
 
