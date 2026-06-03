@@ -48,6 +48,6 @@ async def global_exception_handler(
                                                  "message": "Internal server error"}
                         )
 
-app.include_router(router)
+
 
 
