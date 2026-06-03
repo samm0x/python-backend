@@ -1,4 +1,3 @@
-
 from http.client import HTTPException
 from sqlalchemy.orm import Session
 from backend.config import SECRET_KEY, ALGORITHM
@@ -21,6 +20,8 @@ from backend.repositories.user_repository import get_user_by_username , create_u
 from backend.utils.responses import success_response
 from fastapi import  BackgroundTasks
 from backend.celery_app import send_email
+from backend.core.logging import logger
+
 limiter = Limiter(key_func=get_remote_address)
 
 
@@ -54,6 +55,15 @@ def login( request: Request , db : Session , username: str , password: str):
         "session_id": refresh_obj.id
     })
     log_action(db, user.id , "login", ip)
+    logger.ingo(
+        f"login attempt {username}"
+    )
+    logger.info(
+        f"User {username} logged in successfully"
+    )
+    logger.error(
+        f"Login failed for {username}"
+    )
     return{
         "access_token":access,
         "refresh_token": refresh_token,
