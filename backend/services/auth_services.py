@@ -1,6 +1,6 @@
 from http.client import HTTPException
 from sqlalchemy.orm import Session
-from backend.config import SECRET_KEY, ALGORITHM
+
 from backend.models import (User, RefreshToken, TokenBlacklist)
 from fastapi import (HTTPException, Depends ,
                      Request )
@@ -21,6 +21,9 @@ from backend.utils.responses import success_response
 from fastapi import  BackgroundTasks
 from backend.celery_app import send_email
 from backend.core.logging import logger
+from backend.config import settings
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
 
 limiter = Limiter(key_func=get_remote_address)
 
