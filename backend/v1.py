@@ -2,8 +2,6 @@ from http.client import HTTPException
 from fastapi import APIRouter
 from sqlalchemy.orm import Session
 
-from .config import SECRET_KEY, ALGORITHM
-
 from .models import (User, RefreshToken, TokenBlacklist, AuditLog)
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -37,7 +35,9 @@ limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
 
 
-
+from backend.config import settings
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
 
 @router.post("/login" ,response_model=LoginResponse)
 @limiter.limit("5 / minute")
