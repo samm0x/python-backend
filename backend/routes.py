@@ -23,6 +23,7 @@ from fastapi import BackgroundTasks
 import random
 from celery import Celery
 from backend.celery_app import celery
+import asyncio
 limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
@@ -224,3 +225,22 @@ def get_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
     users_data = [{"username": u.username, "ip": u.ip} for u in users]
     return users_data
+
+@router.get("/slow")
+def slow_endpoint():
+    import time
+    time.sleep(2)
+    return {"message": "done after 2 seconds"}
+
+@router.get("/fast")
+def fast_endpoint():
+    await asyncio.sleep(2)
+    return {"message":"done after 2 seconds"}
+
+@router.get("/soper_fast")
+def soper_fast():
+    result1, result2 = await asyncio.gather(
+        asyncio.sleep(1),
+        asyncio.sleep(1)
+    )
+    return {"message" : "two tasks done in 1 second"}
