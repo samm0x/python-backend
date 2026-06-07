@@ -237,8 +237,8 @@ def fast_endpoint():
     await asyncio.sleep(2)
     return {"message":"done after 2 seconds"}
 
-@router.get("/soper_fast")
-def soper_fast():
+@router.get("/super_fast")
+def super_fast_endpoint():
     result1, result2 = await asyncio.gather(
         asyncio.sleep(1),
         asyncio.sleep(1)
