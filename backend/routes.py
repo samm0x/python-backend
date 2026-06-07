@@ -233,14 +233,14 @@ def slow_endpoint():
     return {"message": "done after 2 seconds"}
 
 @router.get("/fast")
-def fast_endpoint():
+async def fast_endpoint():
     await asyncio.sleep(2)
-    return {"message":"done after 2 seconds"}
+    return {"message": "done after 2 seconds"}
 
-@router.get("/super_fast")
-def super_fast_endpoint():
+@router.get("/super-fast")
+async def super_fast_endpoint():
     result1, result2 = await asyncio.gather(
         asyncio.sleep(1),
         asyncio.sleep(1)
     )
-    return {"message" : "two tasks done in 1 second"}
+    return {"message": "two tasks done in 1 second!"}
