@@ -24,6 +24,7 @@ import random
 from celery import Celery
 from backend.celery_app import celery
 import asyncio
+
 limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
