@@ -130,35 +130,34 @@ def reset_password(
     return {
         "message": "Password updated"
     }
-
-def refresh_token_endpoint(db: Session, refresh_token : str ):
-
-    # 🔥 cleanup
-    db.query(RefreshToken).filter(RefreshToken.expires_at < datetime.utcnow(), RefreshToken.is_revoked == False).update({"is_revoked": True})
+def refresh_token_endpoint(db: Session, refresh_token: str):
+    # cleanup توکن‌های منقضی
+    db.query(RefreshToken).filter(
+        RefreshToken.expires_at < datetime.utcnow(),
+        RefreshToken.is_revoked == False
+    ).update({"is_revoked": True})
     db.commit()
 
-    # 🔥 reuse attack detection (اولین چیز!)
-    tokens = db.query(RefreshToken).all()
+    # reuse detection
+    hashed_incoming = hash_refresh_token(refresh_token)
 
-    for t in tokens:
-        if verify_password(refresh_token, t.token):
-            if t.is_revoked:
-                db.query(RefreshToken).filter(
-                    RefreshToken.user_id == t.user_id
-                ).update({"is_revoked": True})
+    suspected = db.query(RefreshToken).filter(
+        RefreshToken.token == hashed_incoming
+    ).first()
 
-                db.commit()
+    if suspected and suspected.is_revoked:
+        db.query(RefreshToken).filter(
+            RefreshToken.user_id == suspected.user_id
+        ).update({"is_revoked": True})
+        db.commit()
+        raise HTTPException(
+            status_code=401,
+            detail="Token reuse detected. All sessions revoked"
+        )
 
-                raise HTTPException(
-                    status_code=401,
-                    detail="Token reuse detected. All sessions revoked"
-                )
-
-    # 🔐 حالا چک معتبر بودن
-    hashed_refresh = hash_refresh_token(refresh_token)
-
+    # چک معتبر بودن
     valid_token = db.query(RefreshToken).filter(
-        RefreshToken.token == hashed_refresh,
+        RefreshToken.token == hashed_incoming,
         RefreshToken.is_revoked == False
     ).first()
 
@@ -168,13 +167,10 @@ def refresh_token_endpoint(db: Session, refresh_token : str ):
     if valid_token.expires_at < datetime.utcnow():
         raise HTTPException(status_code=401, detail="Refresh token expired")
 
-    # 🔄 revoke قبلی
     valid_token.is_revoked = True
-
     user = valid_token.user
-    new_access = create_access_token({"sub": user.username})
 
-    # 🔄 ساخت refresh جدید
+    new_access = create_access_token({"sub": user.username})
     new_refresh = create_refresh_token()
     hashed_new_refresh = hash_refresh_token(new_refresh)
 
@@ -191,6 +187,7 @@ def refresh_token_endpoint(db: Session, refresh_token : str ):
         "access_token": new_access,
         "refresh_token": new_refresh
     }
+
 
 def logout(
         db: Session ,
