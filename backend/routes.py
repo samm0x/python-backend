@@ -46,7 +46,7 @@ def login_user ( request: Request, data : LoginRequest, db: Session = Depends(ge
 
 @router.post("/register")
 @limiter.limit("3 / minute")
-def register_user(data: RegisterRequest, background_tasks: BackgroundTasks ,  db: Session = Depends(get_db)):
+def register_user(request : Request , data: RegisterRequest, background_tasks: BackgroundTasks ,  db: Session = Depends(get_db)):
     background_tasks.add_task(
         send_email
     )
