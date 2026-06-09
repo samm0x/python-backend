@@ -1,16 +1,13 @@
 from http.client import HTTPException
 from fastapi import APIRouter
 from sqlalchemy.orm import Session
-
-from .models import (User, RefreshToken, TokenBlacklist, AuditLog)
+from .models import (User, RefreshToken, TokenBlacklist)
 from fastapi.security import OAuth2PasswordRequestForm
-
 from .permissions import require_permission
-from backend.repositories.user_repository import get_user_by_username
 from .schemas import (RegisterRequest,
                       UserRequest, LoginResponse)
 from fastapi import (HTTPException, Depends ,
-                     Request , BackgroundTasks)
+                     Request )
 from .database import get_db
 from .security import (
     verify_password,
@@ -23,12 +20,9 @@ from .security import (
 from datetime import datetime, timedelta
 from .dependencies import get_current_admin
 from jose import jwt
-from .tasks import write_log
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-
 from backend.services.auth_services import login
-
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -70,66 +64,12 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     return {"message": "User registered successfully"}
 
 @router.post("/refresh")
-def refresh_token_endpoint(refresh_token: str, db: Session = Depends(get_db)):
-
-    # 🔥 cleanup
-    db.query(RefreshToken).filter(RefreshToken.expires_at < datetime.utcnow(), RefreshToken.is_revoked == False).update({"is_revoked": True})
-    db.commit()
-
-    # 🔥 reuse attack detection (اولین چیز!)
-    tokens = db.query(RefreshToken).all()
-
-    for t in tokens:
-        if verify_password(refresh_token, t.token):
-            if t.is_revoked:
-                db.query(RefreshToken).filter(
-                    RefreshToken.user_id == t.user_id
-                ).update({"is_revoked": True})
-
-                db.commit()
-
-                raise HTTPException(
-                    status_code=401,
-                    detail="Token reuse detected. All sessions revoked"
-                )
-
-    # 🔐 حالا چک معتبر بودن
-    hashed_refresh = hash_refresh_token(refresh_token)
-
-    valid_token = db.query(RefreshToken).filter(
-        RefreshToken.token == hashed_refresh,
-        RefreshToken.is_revoked == False
-    ).first()
-
-    if not valid_token:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-    if valid_token.expires_at < datetime.utcnow():
-        raise HTTPException(status_code=401, detail="Refresh token expired")
-
-    # 🔄 revoke قبلی
-    valid_token.is_revoked = True
-
-    user = valid_token.user
-    new_access = create_access_token({"sub": user.username})
-
-    # 🔄 ساخت refresh جدید
-    new_refresh = create_refresh_token()
-    hashed_new_refresh = hash_refresh_token(new_refresh)
-
-    new_refresh_obj = RefreshToken(
-        token=hashed_new_refresh,
-        user_id=user.id,
-        expires_at=datetime.utcnow() + timedelta(days=7)
-    )
-
-    db.add(new_refresh_obj)
-    db.commit()
-
-    return {
-        "access_token": new_access,
-        "refresh_token": new_refresh
-    }
+def refresh_token_endpoint(
+    refresh_token: str,
+    db: Session = Depends(get_db)
+):
+    from backend.services.auth_services import refresh_token_endpoint as refresh_service
+    return refresh_service(db, refresh_token)
 
 @router.get("/logout")
 def logout(
@@ -149,11 +89,6 @@ def logout(
 
 
 
-@router.get("/me", response_model=UserRequest)
-def get_me (user: User = Depends(get_current_user)):
-    return user
-
-
 @router.get("/profile")
 def profile (request: Request , user: User = Depends(get_current_user)):
     client_id = request.client.host
@@ -167,11 +102,6 @@ def profile (request: Request , user: User = Depends(get_current_user)):
         "client_id": client_id,
         "user_agent": user_agent
     }
-
-@router.get("/users")
-def users( db: Session = Depends(get_db)):
-    return db.query(User).all()
-
 
 @router.patch("/admin/users/{user_id}/make-admin")
 def make_admin(user_id: int, admin: User = Depends(get_current_admin) ,db: Session = Depends(get_db)):
@@ -219,34 +149,23 @@ def delete_session(session_id: int, user: User = Depends(get_current_user), db:S
     return { "message": f"session {session_id} revoked"}
 
 @router.post("/sessions/logout-all")
-def logout_all(user: User = Depends(get_current_user),
-               current_session_id: int = Depends(get_current_session_id) ,
-               db: Session = Depends(get_db)):
-    session = db.query(RefreshToken).filter(RefreshToken.expires_at < datetime.utcnow(), RefreshToken.is_revoked == False)(db , user).all()
-    for s in session:
-        if s.id != current_session_id:s.is_revoked = True
+def logout_all(
+    user: User = Depends(get_current_user),
+    current_session_id: int = Depends(get_current_session_id),
+    db: Session = Depends(get_db)
+):
+    sessions = db.query(RefreshToken).filter(
+        RefreshToken.user_id == user.id,
+        RefreshToken.is_revoked == False
+    ).all()
+
+    for s in sessions:
+        if s.id != current_session_id:
+            s.is_revoked = True
 
     db.commit()
     return {"message": "Other sessions revoked"}
-#
-# @router.get("/tamrin")
-# def tamrin (  user: User , admin:User = Depends(get_current_admin), db:Session = Depends(get_db)):
-#     admin = db.query(User).filter(User.username == admin.username).first()
-#     log_action(db, admin.id , f"delete_user_{user.id}")
-#     return {
-#         "username": admin.username,
-#         "to hasti": admin.role
-#     }
 
-@router.get("/taamrrin")
-def sss (user:User = Depends(get_current_user) ,db:Session = Depends(get_db)):
-    if not user:
-        raise HTTPException(status_code=401, detail= "user not")
-
-    return {
-        "username": user.username,
-        "yuor": user.role
-    }
 
 @router.post("/logout-all")
 def logout_all(user: User = Depends(get_current_user), db :Session = Depends(get_db)):
@@ -315,12 +234,6 @@ def reset_password(
         "message": "Password updated"
     }
 
-@router.get("/logs")
-def get_logs(
-        db: Session = Depends(get_db),
-        admin: User = Depends(get_current_admin)
-):
-    return db.query(AuditLog).all
 
 @router.get("/users")
 def get_users(
@@ -353,7 +266,3 @@ def delete_user(
 ):
     return {"message": "User deleted"}
 
-@router.post("/login")
-def login (background_tasks: BackgroundTasks):
-    background_tasks.add_task(write_log, "sam")
-    return { "message": "Logged in "}

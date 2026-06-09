@@ -57,7 +57,7 @@ def refresh_token_endpoints(refresh_token: str, db: Session = Depends(get_db)):
     return refresh_token_endpoint(db, refresh_token)
 
 
-@router.get("/logout")
+@router.post("/logout")
 def logouts(
         token : str = Depends(oauth2_scheme),
         user : User = Depends(get_current_user),

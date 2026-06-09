@@ -1,6 +1,5 @@
 from http.client import HTTPException
 from sqlalchemy.orm import Session
-
 from backend.models import (User, RefreshToken, TokenBlacklist)
 from fastapi import (HTTPException, Depends ,
                      Request )
@@ -17,7 +16,6 @@ from jose import jwt
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from backend.repositories.user_repository import get_user_by_username , create_user , get_user_sessions_query , filter_by_device
-from backend.utils.responses import success_response
 from fastapi import  BackgroundTasks
 from backend.celery_app import send_email
 from backend.core.logging import logger
@@ -58,7 +56,7 @@ def login( request: Request , db : Session , username: str , password: str):
         "session_id": refresh_obj.id
     })
     log_action(db, user.id , "login", ip)
-    logger.ingo(
+    logger.info(
         f"login attempt {username}"
     )
     logger.info(
@@ -93,43 +91,25 @@ def register(db: Session ,background_tasks: BackgroundTasks , username: str , pa
 
 
     return {"message": "User registered successfully"}
+def reset_password(token: str, new_password: str, db: Session):
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
-def reset_password(
-    token: str,
-    new_password: str,
-    db: Session = Depends(get_db)
-):
-    payload = jwt.decode(
-        token,
-        SECRET_KEY,
-        algorithms=[ALGORITHM]
-    )
-
-    # چک نوع توکن
     if payload.get("type") != "reset":
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid token type"
-        )
+        raise HTTPException(status_code=401, detail="Invalid token type")
 
     username = payload.get("sub")
-
     user = get_user_by_username(db, username)
 
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=404, detail="User not found")
 
     user.password = hash_password(new_password)
     db.commit()
 
-    log_action(db, user.id , "reset_password" )
+    log_action(db, user.id, "reset_password", ip="system")
 
-    return {
-        "message": "Password updated"
-    }
+    return {"message": "Password updated"}
+
 def refresh_token_endpoint(db: Session, refresh_token: str):
     # cleanup توکن‌های منقضی
     db.query(RefreshToken).filter(
@@ -201,9 +181,9 @@ def logout(
      filter(RefreshToken.expires_at < datetime.utcnow(),
             RefreshToken.is_revoked == False).update({"is_revoked": True }))
 
-    session = (db.query(RefreshToken).
-     filter(RefreshToken.user_id == session_id
-            , RefreshToken.is_revoked == False).update({"is_revoked": True }))
+    session = db.query(RefreshToken).filter(
+        RefreshToken.id == session_id
+    ).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
