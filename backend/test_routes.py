@@ -111,3 +111,26 @@ def test_delete_user_permission_denied(client):
 def test_profile_unauthorized(client):
     response = client.get("/api/v1/profile")
     assert response.status_code == 401
+
+def test_get_sessions(client):
+    client.post("/api/v1/register", json={"username": "sessionuser", "password": "1234"})
+    from backend.security import create_access_token
+    access_token = create_access_token({"sub": "sessionuser"})
+    response = client.get("/api/v1/sessions", headers={
+        "Authorization": f"Bearer {access_token}"
+    })
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+def test_delete_session(client):
+    client.post("/api/v1/register", json={"username": "sessionuser2", "password": "1234"})
+    from backend.security import create_access_token
+    access_token = create_access_token({"sub": "sessionuser2"})
+    responses = client.delete("/api/v1/sessions/9999" , headers={
+        "Authorization": f"Bearer {access_token}"
+    })
+    assert  responses.status_code == 404
+
+def test_get_session_unauthorized(client):
+    response = client.get("/api/v1/sessions")
+    assert response.status_code == 401

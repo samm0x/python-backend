@@ -1,6 +1,4 @@
-
 import secrets
-from datetime import datetime, timedelta
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends
@@ -12,7 +10,7 @@ from backend.config import settings
 from .database import get_db
 import hashlib
 from time import time
-
+from datetime import datetime, timedelta, timezone
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
@@ -31,7 +29,7 @@ def verify_password(plain, hashed):
 
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=15)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -78,7 +76,7 @@ def get_current_session_id(token: str = Depends(oauth2_scheme)):
 
 def create_reset_token(data: dict):
     to_encode = data.copy()
-    expires = datetime.utcnow() + timedelta(minutes= 15)
+    expires = datetime.now(timezone.utc) + timedelta(minutes= 15)
     to_encode.update({"exp": expires , "type": "reset"})
     return jwt.encode(to_encode, SECRET_KEY , algorithm= ALGORITHM)
 

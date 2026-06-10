@@ -1,9 +1,8 @@
 
 from sqlalchemy import Column, Integer, String , ForeignKey, DateTime,Boolean
 from sqlalchemy.orm import relationship
-from datetime import  datetime
 from .database import Base
-
+from datetime import datetime, timezone
 
 class User(Base):
     __tablename__ = "users"
@@ -21,7 +20,7 @@ class RefreshToken(Base):
     devici_info = Column (String)
     token = Column (String, nullable=False)
     expires_at = Column (DateTime, nullable=False)
-    create_at = Column (DateTime, default=datetime.utcnow)
+    create_at = Column (DateTime, default=lambda :datetime.now(timezone.utc))
     is_revoked = Column (Boolean, default=False)
     device = Column(String, nullable=True)
     ip = Column(String, nullable=True)
@@ -31,7 +30,7 @@ class TokenBlacklist(Base):
     __tablename__= "token_blacklist"
     id = Column(Integer, primary_key=True )
     token = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda :datetime.now(timezone.utc))
 
 
 class PasswordResetToken(Base):
@@ -51,5 +50,5 @@ class AuditLog(Base):
     ip = Column(String, nullable=True)
     user_id = Column(Integer)
     action = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda : datetime.now(timezone.utc))
 
