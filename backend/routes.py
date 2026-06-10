@@ -1,3 +1,4 @@
+import shutil
 from http.client import HTTPException
 from fastapi import APIRouter
 from sqlalchemy.orm import Session
@@ -24,6 +25,8 @@ import random
 from celery import Celery
 from backend.celery_app import celery
 import asyncio
+from fastapi import UploadFile , File
+
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -246,3 +249,22 @@ async def super_fast_endpoint():
         asyncio.sleep(1)
     )
     return {"message": "two tasks done in 1 second!"}
+
+
+@router.post("/upload")
+async def upload_file(
+        file: UploadFile = File(...)
+):
+    with open(
+        f"uploads/{file.filename}",
+        "wd"
+    )as buffer:
+        shutil.copyfileobj(
+            file.file,
+            buffer
+        )
+
+    return {
+        "message": "file uploaded successfully",
+        "filename": file.filename
+    }
