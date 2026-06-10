@@ -9,6 +9,7 @@ SQLALCHEMY_TEST_DATABASE_URI = "sqlite:///test_temp.db"
 engine = create_engine(SQLALCHEMY_TEST_DATABASE_URI)
 TestingSessionLocal = sessionmaker(bind=engine)
 
+
 @pytest.fixture
 def db():
     Base.metadata.create_all(bind=engine)
@@ -17,6 +18,7 @@ def db():
     session.close()
     Base.metadata.drop_all(bind=engine)
 
+
 @pytest.fixture
 def client(db):
     def override_get_db():
@@ -24,24 +26,59 @@ def client(db):
     app.dependency_overrides[get_db] = override_get_db
     return TestClient(app)
 
+
 def test_register(client):
-    response = client.post("/register", json={
+    response = client.post("/api/v1/register", json={
         "username": "testuser123",
         "password": "1234"
     })
     assert response.status_code == 200
 
+
 def test_login(client):
-    client.post("/register", json={"username": "testuser123", "password": "1234"})
-    response = client.post("/login", json={"username": "testuser123", "password": "1234"})
+    client.post("/api/v1/register", json={"username": "testuser123", "password": "1234"})
+    response = client.post("/api/v1/login", data={"username": "testuser123", "password": "1234"})
     assert response.status_code == 200
 
+
 def test_register_duplicate(client):
-    client.post("/register", json={"username": "dupuser", "password": "1234"})
-    response = client.post("/register", json={"username": "dupuser", "password": "1234"})
+    client.post("/api/v1/register", json={"username": "dupuser", "password": "1234"})
+    response = client.post("/api/v1/register", json={"username": "dupuser", "password": "1234"})
     assert response.status_code == 400
 
+
 def test_login_wrong_password(client):
-    client.post("/register", json={"username": "testuser123", "password": "1234"})
-    response = client.post("/login", json={"username": "testuser123", "password": "wrong"})
+    client.post("/api/v1/register", json={"username": "testuser123", "password": "1234"})
+    response = client.post("/api/v1/login", data={"username": "testuser123", "password": "wrong"})
+    assert response.status_code == 401
+
+def test_refresh_token(client):
+    client.post("/api/v1/register", json={"username": "refreshuser", "password": "1234"})
+    login_response = client.post("/api/v1/login", data={"username": "refreshuser", "password": "1234"})
+    refresh_token = login_response.json()["refresh_token"]
+
+    response = client.post(f"/api/v1/refresh?refresh_token={refresh_token}")
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+
+
+def test_logout(client):
+    client.post("/api/v1/register", json={"username": "logoutuser", "password": "1234"})
+    login_response = client.post("/api/v1/login", data={"username": "logoutuser", "password": "1234"})
+    access_token = login_response.json()["access_token"]
+
+    response = client.post("/api/v1/logout", headers={
+        "Authorization": f"Bearer {access_token}"
+    })
+    assert response.status_code == 200
+
+
+def test_token_revoked_after_logout(client):
+    client.post("/api/v1/register", json={"username": "revokeuser", "password": "1234"})
+    login_response = client.post("/api/v1/login", data={"username": "revokeuser", "password": "1234"})
+    access_token = login_response.json()["access_token"]
+
+    client.post("/api/v1/logout", headers={"Authorization": f"Bearer {access_token}"})
+
+    response = client.get("/api/v1/profile", headers={"Authorization": f"Bearer {access_token}"})
     assert response.status_code == 401
