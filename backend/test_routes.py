@@ -82,3 +82,32 @@ def test_token_revoked_after_logout(client):
 
     response = client.get("/api/v1/profile", headers={"Authorization": f"Bearer {access_token}"})
     assert response.status_code == 401
+
+
+def test_admin_access_denied(client):
+    client.post("/api/v1/register", json={"username": "admintest", "password": "1234"})
+
+    # مستقیم توکن میسازیم بدون login
+    from backend.security import create_access_token
+    access_token = create_access_token({"sub": "admintest"})
+
+    response = client.patch("/api/v1/admin/users/1/make-admin", headers={
+        "Authorization": f"Bearer {access_token}"
+    })
+    assert response.status_code == 403
+
+
+def test_delete_user_permission_denied(client):
+    client.post("/api/v1/register", json={"username": "deletetest", "password": "1234"})
+
+    from backend.security import create_access_token
+    access_token = create_access_token({"sub": "deletetest"})
+
+    response = client.delete("/api/v1/users/1", headers={
+        "Authorization": f"Bearer {access_token}"
+    })
+    assert response.status_code == 403
+
+def test_profile_unauthorized(client):
+    response = client.get("/api/v1/profile")
+    assert response.status_code == 401
