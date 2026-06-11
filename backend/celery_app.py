@@ -1,5 +1,6 @@
 from celery import Celery
-import time
+from  fastapi_mail import FastMail , MessageSchema
+from backend.core.email import conf
 
 celery = Celery(
     "tasks",
@@ -8,13 +9,21 @@ celery = Celery(
 )
 
 @celery.task
-def send_email(username : str):
-    time.sleep(3)
-    print(f"email sent to {username}")
-    return {"status": "email sent", "to": username}
+def send_email(email: str , username : str ):
+    import asyncio
+    message = MessageSchema(
+        subject="خوش اومدی",
+        recipients=[email],
+        body=f"سلام {username}، ثبت نام موفق بود.",
+        subtype="plain"
+    )
+    fm = FastMail(conf)
+    asyncio.run(fm.send_message(message))
+    return {"status": "email sent", "to": email}
 
 @celery.task
-def generate_report(user_id : str):
+def generate_report(user_id:str):
+    import time
     time.sleep(5)
     print(f"report generated for user {user_id}")
     return {"status": "report generated", "to": user_id}

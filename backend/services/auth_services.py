@@ -85,12 +85,11 @@ def register(db: Session ,background_tasks: BackgroundTasks , username: str , pa
 
     create_user(db, username, hashed_password)
 
-    background_tasks.add_task(
-        send_email
-    )
+    background_tasks.add_task(send_email, username , username)
 
 
     return {"message": "User registered successfully"}
+
 def reset_password(token: str, new_password: str, db: Session):
     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 

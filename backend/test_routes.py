@@ -134,3 +134,11 @@ def test_delete_session(client):
 def test_get_session_unauthorized(client):
     response = client.get("/api/v1/sessions")
     assert response.status_code == 401
+
+def test_register_sends_email(client):
+    response = client.post("/api/v1/register", json={
+        "username": "emailuser",
+        "password": "1234"
+    })
+    assert response.status_code == 200
+    assert response.json()["message"] == "User registered successfully"
