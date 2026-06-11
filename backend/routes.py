@@ -257,7 +257,7 @@ async def upload_file(
 ):
     with open(
         f"uploads/{file.filename}",
-        "wd"
+        "wp"
     )as buffer:
         shutil.copyfileobj(
             file.file,

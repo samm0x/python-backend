@@ -6,6 +6,7 @@ from backend.middleware import LoggingMiddleware , MaintenanceMiddleware
 from fastapi.responses import JSONResponse
 from backend.v1 import router as v1_router
 from backend.v2 import router as v2_router
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
@@ -48,6 +49,12 @@ async def global_exception_handler(
                                                  "message": "Internal server error"}
                         )
 
-
+app.mount(
+    "/uploads",
+    StaticFiles(
+        directory="uploads"
+    ),
+    name="uploads"
+)
 
 
