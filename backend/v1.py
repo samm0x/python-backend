@@ -149,19 +149,37 @@ def reset_password(token: str, new_password: str, db: Session = Depends(get_db))
     log_action(db, user.id, "reset_password", ip="system")
     return {"message": "Password updated"}
 
-
 @router.get("/users")
-def get_users(search: str = None, role: str = None, sort: str = "asc", db: Session = Depends(get_db)):
+def get_users(
+    search: str = None,
+    role: str = None,
+    sort: str = "asc",
+    page: int = 1,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
     query = db.query(User)
+
     if search:
         query = query.filter(User.username.contains(search))
+
     if role:
         query = query.filter(User.role == role)
+
     if sort == "asc":
         query = query.order_by(User.id.asc())
     else:
         query = query.order_by(User.id.desc())
-    return query.all()
+
+    total = query.count()
+    users = query.offset((page - 1) * limit).limit(limit).all()
+
+    return {
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "users": users
+    }
 
 
 @router.delete("/users/{user_id}")
