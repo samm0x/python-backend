@@ -17,6 +17,10 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from backend.services.auth_services import login, refresh_token_endpoint as refresh_service
 from backend.config import settings
+from fastapi import UploadFile , File
+import shutil
+import os
+
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
@@ -168,3 +172,18 @@ def delete_user(user_id: int, admin: User = Depends(require_permission("delete_u
     db.delete(user)
     db.commit()
     return {"message": "User deleted"}
+
+
+@router.post("/upload")
+def upload_file(file: UploadFile = File(...), user : User = Depends(get_db)):
+    allowed_types = ["image/jpeg", "image/png" , "application/pdf"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="نوع فایل مجاز نیست")
+    if file.size > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400 , detail="حجم فایل بیشتر از ۵ مگابایته")
+
+    file_path = f"uploads/{user.id}_{file.filename}"
+    with open(file_path, "wb") as buffer :
+        shutil.copyfileobj(file.file, buffer)
+
+    return {"message": "فایل آپلود شد", "path": file_path}
