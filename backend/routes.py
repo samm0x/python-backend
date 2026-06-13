@@ -250,21 +250,3 @@ async def super_fast_endpoint():
     )
     return {"message": "two tasks done in 1 second!"}
 
-
-@router.post("/upload")
-async def upload_file(
-        file: UploadFile = File(...)
-):
-    with open(
-        f"uploads/{file.filename}",
-        "wp"
-    )as buffer:
-        shutil.copyfileobj(
-            file.file,
-            buffer
-        )
-
-    return {
-        "message": "file uploaded successfully",
-        "filename": file.filename
-    }
