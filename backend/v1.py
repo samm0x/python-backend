@@ -181,15 +181,24 @@ def get_users(
         "users": users
     }
 
-
 @router.delete("/users/{user_id}")
-def delete_user(user_id: int, admin: User = Depends(require_permission("delete_user")), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
+def delete_user(
+    user_id: int,
+    admin: User = Depends(get_current_admin),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(
+        User.id == user_id,
+        User.is_deleted == False
+    ).first()
+
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    db.delete(user)
+        raise HTTPException(status_code=404, detail="کاربر پیدا نشد")
+
+    user.is_deleted = True
     db.commit()
-    return {"message": "User deleted"}
+
+    return {"message": f"کاربر {user.username} غیرفعال شد"}
 
 
 @router.post("/upload")

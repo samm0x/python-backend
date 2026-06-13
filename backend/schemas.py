@@ -5,8 +5,10 @@ class LoginRequest(BaseModel):
     password: str
 
 class RegisterRequest(BaseModel):
+    email: str
     username: str
     password: str
+
 
 class LogoutRequest(BaseModel):
     refresh_token: str

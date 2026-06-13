@@ -71,24 +71,21 @@ def login( request: Request , db : Session , username: str , password: str):
         "token_type": "bearer"
     }
 
-def register(db: Session ,background_tasks: BackgroundTasks , username: str , password: str):
-
-    # 1. چک یوزر تکراری
+def register(db: Session, background_tasks: BackgroundTasks, username: str, email: str, password: str):
     existing_user = get_user_by_username(db, username)
-
-
     if existing_user:
-        raise HTTPException( status_code=400, detail="User already exists")
-
+        raise HTTPException(status_code=400, detail="User already exists")
 
     hashed_password = hash_password(password)
+    user = User(username=username, email=email, password=hashed_password, role="user")
+    db.add(user)
+    db.commit()
+    db.refresh(user)
 
-    create_user(db, username, hashed_password)
-
-    background_tasks.add_task(send_email, username , username)
-
+    background_tasks.add_task(send_email, email, username)
 
     return {"message": "User registered successfully"}
+
 
 def reset_password(token: str, new_password: str, db: Session):
     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

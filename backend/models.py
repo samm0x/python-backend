@@ -7,11 +7,13 @@ from datetime import datetime, timezone
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
-    username = Column (String, unique=True, index=True)
-    password = Column (String)
+    username = Column(String, unique=True, index=True)
+    email = Column(String, unique=True, nullable=True)
+    password = Column(String)
     role = Column(String, default="user")
     is_deleted = Column(Boolean, default=False)
-    refresh_tokens= relationship("RefreshToken", back_populates="user")
+    refresh_tokens = relationship("RefreshToken", back_populates="user")
+
 
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
