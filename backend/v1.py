@@ -202,7 +202,7 @@ def delete_user(
 
 
 @router.post("/upload")
-def upload_file(file: UploadFile = File(...), user : User = Depends(get_db)):
+def upload_file(file: UploadFile = File(...), user: User = Depends(get_current_user)):
     allowed_types = ["image/jpeg", "image/png" , "application/pdf"]
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="نوع فایل مجاز نیست")
