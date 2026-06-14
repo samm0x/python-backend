@@ -214,3 +214,44 @@ def upload_file(file: UploadFile = File(...), user: User = Depends(get_current_u
         shutil.copyfileobj(file.file, buffer)
 
     return {"message": "فایل آپلود شد", "path": file_path}
+
+from backend.models import Task
+from backend.services.task_services import create_task, get_tasks, update_task, delete_task
+
+
+@router.post("/tasks")
+def create_task_endpoint(
+    title: str,
+    description: str = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return create_task(db, user.id, title, description)
+
+
+@router.get("/tasks")
+def get_tasks_endpoint(
+    is_done: bool = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return get_tasks(db, user.id, is_done)
+
+
+@router.patch("/tasks/{task_id}")
+def update_task_endpoint(
+    task_id: int,
+    is_done: bool,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return update_task(db, task_id, user.id, is_done)
+
+
+@router.delete("/tasks/{task_id}")
+def delete_task_endpoint(
+    task_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return delete_task(db, task_id, user.id)

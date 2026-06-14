@@ -13,6 +13,7 @@ class User(Base):
     role = Column(String, default="user")
     is_deleted = Column(Boolean, default=False)
     refresh_tokens = relationship("RefreshToken", back_populates="user")
+    tasks = relationship("Task", back_populates="user")
 
 
 class RefreshToken(Base):
@@ -54,3 +55,12 @@ class AuditLog(Base):
     action = Column(String)
     created_at = Column(DateTime, default=lambda : datetime.now(timezone.utc))
 
+class Task(Base):
+    __tablename__ = "tasks"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    is_done = Column(Boolean, default=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship("User", back_populates="tasks")
