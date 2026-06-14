@@ -148,3 +148,50 @@ def test_soft_delete_user(client):
     admin_token = create_access_token({"sub": "deleteuser"})
     response = client.delete(f"/api/v1/users/{user_id}", headers={"Authorization": f"Bearer {admin_token}"})
     assert response.status_code == 200
+
+def test_create_task(client):
+    client.post("/api/v1/register", json={"username": "taskuser", "email": "task@test.com", "password": "1234"})
+    from backend.security import create_access_token
+    access_token = create_access_token({"sub": "taskuser"})
+
+    response = client.post("/api/v1/tasks?title=خرید&description=از بازار", headers={
+        "Authorization": f"Bearer {access_token}"
+    })
+    assert response.status_code == 200
+
+
+def test_get_tasks(client):
+    client.post("/api/v1/register", json={"username": "taskuser2", "email": "task2@test.com", "password": "1234"})
+    from backend.security import create_access_token
+    access_token = create_access_token({"sub": "taskuser2"})
+
+    client.post("/api/v1/tasks?title=خرید", headers={"Authorization": f"Bearer {access_token}"})
+
+    response = client.get("/api/v1/tasks", headers={"Authorization": f"Bearer {access_token}"})
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+
+def test_update_task(client):
+    client.post("/api/v1/register", json={"username": "taskuser3", "email": "task3@test.com", "password": "1234"})
+    from backend.security import create_access_token
+    access_token = create_access_token({"sub": "taskuser3"})
+
+    create_response = client.post("/api/v1/tasks?title=خرید", headers={"Authorization": f"Bearer {access_token}"})
+    task_id = create_response.json()["id"]
+
+    response = client.patch(f"/api/v1/tasks/{task_id}?is_done=true", headers={"Authorization": f"Bearer {access_token}"})
+    assert response.status_code == 200
+    assert response.json()["is_done"] == True
+
+
+def test_delete_task(client):
+    client.post("/api/v1/register", json={"username": "taskuser4", "email": "task4@test.com", "password": "1234"})
+    from backend.security import create_access_token
+    access_token = create_access_token({"sub": "taskuser4"})
+
+    create_response = client.post("/api/v1/tasks?title=خرید", headers={"Authorization": f"Bearer {access_token}"})
+    task_id = create_response.json()["id"]
+
+    response = client.delete(f"/api/v1/tasks/{task_id}", headers={"Authorization": f"Bearer {access_token}"})
+    assert response.status_code == 200
