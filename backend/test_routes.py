@@ -64,7 +64,7 @@ def test_logout(client):
     client.post("/api/v1/register", json={"username": "logoutuser", "email": "logout@test.com", "password": "1234"})
     login_response = client.post("/api/v1/login", data={"username": "logoutuser", "password": "1234"})
     access_token = login_response.json()["access_token"]
-    response = client.post("/api/v1/logout", headers={"Authorization": f"Bearer {access_token}"})
+    response = client.post("/api/v1/logout_everywhere", headers={"Authorization": f"Bearer {access_token}"})
     assert response.status_code == 200
 
 
@@ -72,7 +72,7 @@ def test_token_revoked_after_logout(client):
     client.post("/api/v1/register", json={"username": "revokeuser", "email": "revoke@test.com", "password": "1234"})
     login_response = client.post("/api/v1/login", data={"username": "revokeuser", "password": "1234"})
     access_token = login_response.json()["access_token"]
-    client.post("/api/v1/logout", headers={"Authorization": f"Bearer {access_token}"})
+    client.post("/api/v1/logout_everywhere", headers={"Authorization": f"Bearer {access_token}"})
     response = client.get("/api/v1/profile", headers={"Authorization": f"Bearer {access_token}"})
     assert response.status_code == 401
 

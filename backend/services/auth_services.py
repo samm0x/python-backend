@@ -223,7 +223,7 @@ def get_user_sessions(sort_by: str , order: str , page: int = 1, limit: int = 10
             "device":s.device,
             "ip": s.ip,
             "is_revoked": s.is_revoked,
-            "sort_by": sort_column
+            "sort_by": sort_by
         }
         for s in sessions
     ]

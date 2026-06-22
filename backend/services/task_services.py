@@ -20,7 +20,7 @@ def get_tasks(db: Session, user_id: int, is_done: bool = None):
 def update_task(db: Session, task_id: int, user_id: int, is_done: bool):
     task = db.query(Task).filter(Task.id == task_id, Task.user_id == user_id).first()
     if not task:
-        raise HTTPException(status_code=404, detail="وظیفه پیدا نشد")
+        raise HTTPException(status_code=404, detail="Task not found.")
     task.is_done = is_done
     db.commit()
     db.refresh(task)
@@ -35,7 +35,7 @@ def update_task(db: Session, task_id: int, user_id: int, is_done: bool):
 def delete_task(db: Session, task_id: int, user_id: int):
     task = db.query(Task).filter(Task.id == task_id, Task.user_id == user_id).first()
     if not task:
-        raise HTTPException(status_code=404, detail="وظیفه پیدا نشد")
+        raise HTTPException(status_code=404, detail="Task not found.")
     db.delete(task)
     db.commit()
-    return {"message": "وظیفه حذف شد"}
+    return {"message": "Task deleted."}

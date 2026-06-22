@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     MAIL_USERNAME: str
     MAIL_PASSWORD: str
     MAIL_FROM: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
+    REDIS_HOST: str = "localhost"
 
     class Config:
         env_file = ".env"

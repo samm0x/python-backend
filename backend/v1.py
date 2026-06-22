@@ -20,7 +20,8 @@ from backend.config import settings
 from fastapi import UploadFile , File
 import shutil
 import os
-
+import json
+from backend.core.redis import redis_client
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
@@ -53,8 +54,8 @@ def refresh_token_endpoint(refresh_token: str, db: Session = Depends(get_db)):
     return refresh_service(db, refresh_token)
 
 
-@router.post("/logout")
-def logout(token: str = Depends(oauth2_scheme), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.post("/logout_everywhere")
+def logout_everywhere(token: str = Depends(oauth2_scheme), user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     blacklisted_token = TokenBlacklist(token=token)
     db.query(RefreshToken).filter(
         RefreshToken.user_id == user.id,
@@ -71,13 +72,21 @@ def get_me(user: User = Depends(get_current_user)):
 
 
 @router.get("/profile")
-def profile(request: Request, user: User = Depends(get_current_user)):
-    return {
+def profile(request: Request , user:User = Depends(get_current_user)):
+    cache_key = f"profile:{user.id}"
+
+    ceched_data = redis_client.get(cache_key)
+
+    if ceched_data :
+        return json.loads(ceched_data)
+
+    users = {
         "username": user.username,
-        "role": user.role,
-        "client_id": request.client.host,
-        "user_agent": request.headers.get("User-Agent")
+        "role": user.role
     }
+
+    redis_client.set(cache_key, json.dumps(users), ex=60)
+    return users
 
 
 @router.patch("/admin/users/{user_id}/make-admin")
@@ -102,18 +111,6 @@ def get_sessions(user: User = Depends(get_current_user), db: Session = Depends(g
         RefreshToken.is_revoked == False
     ).all()
     return [{"id": s.id, "device": s.device, "ip": s.ip, "created_at": s.create_at, "expires_at": s.expires_at, "is_revoked": s.is_revoked} for s in sessions]
-
-
-@router.delete("/sessions/{session_id}")
-def delete_session(session_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    session = db.query(RefreshToken).filter(RefreshToken.id == session_id).first()
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    if session.user_id != user.id and user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not allowed")
-    session.is_revoked = True
-    db.commit()
-    return {"message": f"Session {session_id} revoked"}
 
 
 @router.post("/sessions/logout-all")
@@ -193,31 +190,30 @@ def delete_user(
     ).first()
 
     if not user:
-        raise HTTPException(status_code=404, detail="کاربر پیدا نشد")
+        raise HTTPException(status_code=404, detail="User not found")
 
     user.is_deleted = True
     db.commit()
 
-    return {"message": f"کاربر {user.username} غیرفعال شد"}
+    return {"message": f" , User {user.username} Disabled "}
 
 
 @router.post("/upload")
 def upload_file(file: UploadFile = File(...), user: User = Depends(get_current_user)):
     allowed_types = ["image/jpeg", "image/png" , "application/pdf"]
     if file.content_type not in allowed_types:
-        raise HTTPException(status_code=400, detail="نوع فایل مجاز نیست")
+        raise HTTPException(status_code=400, detail="File type is not allowed")
     if file.size > 5 * 1024 * 1024:
-        raise HTTPException(status_code=400 , detail="حجم فایل بیشتر از ۵ مگابایته")
+        raise HTTPException(status_code=400 , detail="File size is more than 5 MB")
 
     file_path = f"uploads/{user.id}_{file.filename}"
     with open(file_path, "wb") as buffer :
         shutil.copyfileobj(file.file, buffer)
 
-    return {"message": "فایل آپلود شد", "path": file_path}
+    return {"message": "File uploaded", "path": file_path}
 
 from backend.models import Task
 from backend.services.task_services import create_task, get_tasks, update_task, delete_task
-
 
 @router.post("/tasks")
 def create_task_endpoint(
